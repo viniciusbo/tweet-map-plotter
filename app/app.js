@@ -15,7 +15,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.get('/', function(req, res) {
-  res.render('visualize/map');
+  res.redirect('/collect');
 });
 
 app.get('/collect', function(req, res) {
@@ -38,7 +38,8 @@ app.post('/collect/new', function(req, res) {
     updated_at: now,
     count: 0,
     collection: 'collector.' + Date.now(),
-    last_tweet_id: null
+    last_tweet_id: null,
+    status: 1
   };
   
   db
@@ -47,15 +48,81 @@ app.post('/collect/new', function(req, res) {
       if (err)
         console.error(err);
 
-      if (result.n > 0)
-        supervisor.superviseCollector(result.ops[0]);
+      if (result.result.n > 0)
+        supervisor.addCollector(result.ops[0]);
 
       res.redirect('/collect');
     });
 });
 
 app.get('/collect/stop/:collectorId', function(req, res) {
-  res.redirect('/collect');
+  db
+    .collection('collectors')
+    .updateById(req.params.collectorId, { $set: { status: 0 } }, function(err, result) {
+      if (err) {
+        console.error(err);
+        return res.redirect('/collect');
+      }
+
+      db
+        .collection('collectors')
+        .findById(req.params.collectorId, function(err, result) {
+          if (err)
+            console.error(err);
+          else
+            supervisor.stopCollector(result._id);
+
+          res.redirect('/collect');
+        });
+    });
+});
+
+app.get('/collect/resume/:collectorId', function(req, res) {
+  db
+    .collection('collectors')
+    .updateById(req.params.collectorId, { $set: { status: 1 } }, function(err, result) {
+      if (err) {
+        console.error(err);
+        return res.redirect('/collect');
+      }
+
+      db
+        .collection('collectors')
+        .findById(req.params.collectorId, function(err, result) {
+          console.log(result);
+          if (err)
+            console.error(err);
+          else
+            supervisor.resumeCollector(result);
+
+          res.redirect('/collect');
+        });
+    });
+});
+
+app.get('/collect/remove/:collectorId', function(req, res) {
+  db
+    .collection('collectors')
+    .findById(req.params.collectorId, function(err, result) {
+      if (err) {
+        console.error(err);
+        return res.redirect('/collect');
+      }
+
+      if (!result)
+        return res.redirect('/collect');
+
+      supervisor.removeCollector(result);
+
+      db
+        .collection('collectors')
+        .removeById(req.params.collectorId, function(err) {
+          if (err)
+            console.error(err);
+
+          res.redirect('/collect');
+        });
+    });
 });
 
 module.exports = {

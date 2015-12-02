@@ -4,6 +4,7 @@ var async = require('async');
 var supervisor = {
   db: null,
   twitterCredentials: null,
+  collectors: {},
 
   start: function(db, twitterCredentials) {
     console.log('Starting collector supervisor...');
@@ -20,16 +21,17 @@ var supervisor = {
 
     this.db
       .collection('collectors')
-      .find({})
+      .find({ status: { $eq: 1 } })
       .toArray(function(err, results) {
         results.forEach(function(result) {
-          self.superviseCollector(result);
+          self.addCollector(result);
         });
       });
   },
 
-  superviseCollector: function(collectorData) {
-    console.log('Supervising new collector');
+  addCollector: function(collectorData) {
+    if (!!this.collectors[collectorData._id])
+      return console.log('Collector already being supervised');
 
     var collector = new TweetCollector(this.twitterCredentials);
     collector.start({
@@ -37,6 +39,9 @@ var supervisor = {
       since_id: collectorData.last_tweet_id
     });
     collector.on('fetch', this._onCollectorFetch.bind(this, collectorData))
+    this.collectors[collectorData._id] = collector;
+
+    console.log('Supervising new collector');
   },
 
   _onCollectorFetch: function(collectorData, tweets) {
@@ -89,6 +94,29 @@ var supervisor = {
     this.db
       .collection(collectionName)
       .insertMany(tweets, cb);
+  },
+
+  resumeCollector: function(collectorData) {
+    var collector = this.collectors[collectorData._id];
+    if (!collector || collector.status == 'started')
+      return;
+
+    collector.start({
+      q: collectorData.keywords,
+      since_id: collectorData.last_tweet_id
+    });
+  },
+
+  stopCollector: function(collectorId) {
+    var collector = this.collectors[collectorId];
+    if (collector)
+      collector.stop();
+  },
+
+  removeCollector: function(collector) {
+    this.stopCollector(collector._id);
+    delete this.collectors[collector._id];
+    this.db.collection(collector.collection).drop();
   }
 };
 

@@ -12,21 +12,27 @@ block content
   table.table
     thead
       tr
+        th Status
         th Palavras-chave
         th Tweets coletados
         th Início
         th Última atualização
         th Ações
     tbody
-      unless collectors
+      if !collectors || collectors.length == 0
         tr
           td(colspan="5") Nenhum coletor criado.
       else
         each collector in collectors
           tr
+            td= collector.status == 1 ? 'Ativo' : 'Inativo'
             td #{collector.keywords}
             td= collector.count
             td= collector.created_at
             td= collector.updated_at
             td
-              a(href="/collect/stop/#{collector.id}").btn Parar
+              if collector.status == 1
+                a(href="/collect/stop/#{collector._id}").btn Parar
+              else
+                a(href="/collect/resume/#{collector._id}").btn Continuar
+              a(href="/collect/remove/#{collector._id}").btn.btn-danger Remover
