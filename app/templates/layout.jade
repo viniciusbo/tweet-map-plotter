@@ -1,0 +1,21 @@
+doctype html
+html
+  head
+    meta(charset="utf-8")
+    title Tweet Map Plotter
+    link(rel="stylesheet", type="text/css", href="/assets/vendor/bootstrap/dist/css/bootstrap.min.css")
+body
+  nav.navbar.navbar-default
+    .container-fluid
+      .navbar-header
+        a.navbar-brand(href="#") Tweet Map Plotter
+
+      .collapse.navbar-collapse
+        ul.nav.navbar-nav
+          li
+            a.active(href="/") Visualizar
+          li
+            a(href="/collect") Coletar
+
+  .container-fluid
+    block content

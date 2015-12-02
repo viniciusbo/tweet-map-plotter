@@ -1,0 +1,32 @@
+extends ../layout.jade
+
+block content
+  h1 Coletar tweets
+
+  form(method="POST", action="/collect/new")
+    .form-group
+      label Palavras-chave separadas por vírgula
+      button.btn.btn-primary.pull-right(type="submit") Coletar tweets
+      input.form-control(type="text", name="keywords", placeholder="Ex.: dengue, febre", required)
+
+  table.table
+    thead
+      tr
+        th Palavras-chave
+        th Tweets coletados
+        th Início
+        th Última atualização
+        th Ações
+    tbody
+      unless collectors
+        tr
+          td(colspan="5") Nenhum coletor criado.
+      else
+        each collector in collectors
+          tr
+            td #{collector.keywords}
+            td= collector.count
+            td= collector.created_at
+            td= collector.updated_at
+            td
+              a(href="/collect/stop/#{collector.id}").btn Parar
